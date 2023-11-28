@@ -6,7 +6,6 @@ from collections import defaultdict
 import re
 
 def save_upload_file(uploaded_file):
-    all_dataframes = []  # 用来存储所有的DataFrame列表
     if uploaded_file.name.endswith('.zip'):
         # 使用BytesIO读取上传的ZIP文件
         bytes_data = uploaded_file.read()
@@ -19,6 +18,7 @@ def save_upload_file(uploaded_file):
 
             for excel_file_name in excel_files:
                 with zipped_file.open(excel_file_name) as excel_file:
+                    all_dataframes = []
                     # 读取Excel文件中的每个工作表
                     xls = pd.ExcelFile(excel_file)
                     for sheet_name in xls.sheet_names:
@@ -32,7 +32,22 @@ def save_upload_file(uploaded_file):
         # 合并所有DataFrame成一个单一的DataFrame
         merged_dataframe = pd.concat(all_dataframes, ignore_index=True)
         return merged_dataframe
-
+    elif uploaded_file.name.endswith('.xlsx') or uploaded_file.name.endswith('.xls'):
+        df_list = []
+        xls = pd.ExcelFile(uploaded_file)
+        for sheet_name in xls.sheet_names:
+            # 读取工作表内容到DataFrame
+            df = pd.read_excel(uploaded_file, sheet_name=sheet_name)
+            # 新增一列来表示这个DataFrame来自于哪个文件的哪个工作表
+            df['Source'] = f"{uploaded_file.name} || {sheet_name}"
+            # 将读取的DataFrame添加到列表中
+            df_list.append(df)
+        merged_dataframe = pd.concat(df_list, ignore_index=True)
+        return merged_dataframe
+    elif uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+        return df
+    
 def get_patterns():
     patterns = {
         'p1':r'\{.+?\}',
@@ -87,7 +102,7 @@ def extract_similar_text(df, source_column:str, pattern_names:list=['p1','p2','p
 st.title('同质化文本抽取')
 
 # 创建一个文件上传器
-uploaded_file = st.file_uploader("选择ZIP文件", type="zip")
+uploaded_file = st.file_uploader("可选择excel、csv或zip文件", type=["xlsx", "xls", "csv", "zip"])
 if uploaded_file:
     merged_dataframe = save_upload_file(uploaded_file)
     # 显示结果
