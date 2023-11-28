@@ -84,7 +84,7 @@ def extract_similar_text(df, source_column:str, pattern_names:list=['p1','p2','p
 
 
 # 设置页面标题
-st.title('表格同质化文本抽取')
+st.title('同质化文本抽取')
 
 # 创建一个文件上传器
 uploaded_file = st.file_uploader("选择ZIP文件", type="zip")
