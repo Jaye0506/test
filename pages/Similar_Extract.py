@@ -97,37 +97,42 @@ def extract_similar_text(df, source_column:str, pattern_names:list=['p1','p2','p
     print(f"同质化文本字数:{similar_text_total}\n原文列总字数:{characters_total}\n同质化文本率:{similar_text_rate}%", )
     return similar_text_data, characters_total, similar_text_total, similar_text_rate
 
+def run():
+    # 设置页面标题
+    st.title('同质化文本抽取')
 
-# 设置页面标题
-st.title('同质化文本抽取')
+    # 创建一个文件上传器
+    uploaded_file = st.file_uploader("可选择excel、csv或zip文件", type=["xlsx", "xls", "csv", "zip"])
+    if uploaded_file:
+        merged_dataframe = save_upload_file(uploaded_file)
+        # 显示结果
+        st.write("合并总数据：")
+        st.write(merged_dataframe)
+        if not merged_dataframe.empty:
+            col1, col2, col3 = st.columns(3)
+            column_name = st.selectbox('请选择抽取同质化的文本列', merged_dataframe.columns)
+            patterns = get_patterns()
+            explanations = {
+                'p1': "匹配大括号内的内容",
+                'p2': "匹配数字",
+                'p3': "匹配中文数字",
+                'p4': "匹配尖括号内的HTML标签",
+                'p5': "匹配方括号内的内容"
+            }
+            df = pd.DataFrame(list(patterns.items()), columns=['Pattern', 'Regex'])
+            df['Explanation'] = df['Pattern'].map(explanations)
+            pattern_names = st.multiselect('选择您需要匹配的模式', explanations.keys(), default=explanations.keys())
+            st.table(df)
+            button = st.button('抽取文本')
+            if button:
+                similar_text_data, characters_total, similar_text_total, similar_text_rate = extract_similar_text(merged_dataframe, column_name, pattern_names)
+                st.write("原文列总字数：", characters_total)
+                st.write("同质化文本字数：", similar_text_total)
+                st.write(f"同质化文本率：{similar_text_rate}%")
+                st.write(similar_text_data)
+            
 
-# 创建一个文件上传器
-uploaded_file = st.file_uploader("可选择excel、csv或zip文件", type=["xlsx", "xls", "csv", "zip"])
-if uploaded_file:
-    merged_dataframe = save_upload_file(uploaded_file)
-    # 显示结果
-    st.write("合并总数据：")
-    st.write(merged_dataframe)
-    if not merged_dataframe.empty:
-        col1, col2, col3 = st.columns(3)
-        column_name = st.selectbox('请选择抽取同质化的文本列', merged_dataframe.columns)
-        patterns = get_patterns()
-        explanations = {
-            'p1': "匹配大括号内的内容",
-            'p2': "匹配数字",
-            'p3': "匹配中文数字",
-            'p4': "匹配尖括号内的HTML标签",
-            'p5': "匹配方括号内的内容"
-        }
-        df = pd.DataFrame(list(patterns.items()), columns=['Pattern', 'Regex'])
-        df['Explanation'] = df['Pattern'].map(explanations)
-        pattern_names = st.multiselect('选择您需要匹配的模式', explanations.keys(), default=explanations.keys())
-        st.table(df)
-        button = st.button('抽取文本')
-        if button:
-            similar_text_data, characters_total, similar_text_total, similar_text_rate = extract_similar_text(merged_dataframe, column_name, pattern_names)
-            st.write("原文列总字数：", characters_total)
-            st.write("同质化文本字数：", similar_text_total)
-            st.write(f"同质化文本率：{similar_text_rate}%")
-            st.write(similar_text_data)
-        
+if "Auth" in st.session_state and st.session_state['Auth'] == True:
+    run()
+else:
+    st.title("No-Authentication!")
